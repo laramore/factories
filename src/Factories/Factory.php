@@ -22,10 +22,10 @@ class Factory extends BaseFactory implements LaramoreManager
      * Create a builder for the given model.
      *
      * @param  string|mixed $class
-     * @param  string       $name
+     * @param  string|mixed $name
      * @return \Laramore\Factories\FactoryBuilder
      */
-    public function of($class, string $name='default')
+    public function of($class, $name='default')
     {
         return new FactoryBuilder(
             $class, $name, $this->definitions, $this->states,
@@ -36,10 +36,10 @@ class Factory extends BaseFactory implements LaramoreManager
     /**
      * Load factories from path.
      *
-     * @param  string $path
+     * @param  string|mixed $path
      * @return self
      */
-    public function load(string $path)
+    public function load($path)
     {
         $this->needsToBeUnlocked();
 
@@ -51,10 +51,10 @@ class Factory extends BaseFactory implements LaramoreManager
      *
      * @param  string|mixed $class
      * @param  callable     $attributes
-     * @param  string       $name
+     * @param  string|mixed $name
      * @return self
      */
-    public function define($class, callable $attributes, string $name='default')
+    public function define($class, callable $attributes, $name='default')
     {
         $this->needsToBeUnlocked();
 
@@ -65,11 +65,11 @@ class Factory extends BaseFactory implements LaramoreManager
      * Define a state with a given set of attributes.
      *
      * @param  string|mixed   $class
-     * @param  string         $state
+     * @param  string|mixed   $state
      * @param  callable|array $attributes
      * @return self
      */
-    public function state($class, string $state, string $attributes)
+    public function state($class, $state, $attributes)
     {
         $this->needsToBeUnlocked();
 

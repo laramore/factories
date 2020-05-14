@@ -235,11 +235,11 @@ class FactoryBuilder extends BaseFactoryBuilder
     /**
      * Get the state attributes.
      *
-     * @param  string $state
-     * @param  array  $attributes
+     * @param  string|mixed $state
+     * @param  array        $attributes
      * @return self
      */
-    protected function stateAttributes(string $state, array $attributes=[])
+    protected function stateAttributes($state, array $attributes=[])
     {
         $this->mergeAttributes($attributes);
 
