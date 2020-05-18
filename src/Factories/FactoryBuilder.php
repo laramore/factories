@@ -53,6 +53,13 @@ class FactoryBuilder extends BaseFactoryBuilder
      */
     public function setAttribute(string $key, $value)
     {
+        if ($value instanceof static
+            && \is_null($value->amount)
+            && !\is_null($this->stateAmount)
+            && $this->class::getMeta()->hasField($key, MultiRelationField::class)) {
+            $value->times($this->stateAmount);
+        }
+
         $this->attributes[$key] = $value;
 
         return $this;
