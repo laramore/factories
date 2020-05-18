@@ -11,6 +11,9 @@ return [
     |
     */
 
+    'binary' => [
+        'factory_name' => 'randomNumber',
+    ],
     'char' => [
         'factory_name' => 'word',
     ],

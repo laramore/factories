@@ -111,6 +111,7 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
     public function bootingCallback()
     {
         Type::define('factory_name');
+        Type::define('factory_parameters', []);
 
         $this->setMacros();
     }
@@ -134,7 +135,9 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
             }
 
             return $this->transform(
-                $this->cast(app(FakerGenerator::class)->format(Str::camel($name)))
+                $this->cast(app(FakerGenerator::class)->format(
+                    Str::camel($name), $this->getType()->getFactoryParameters()
+                ))
             );
         });
     }
