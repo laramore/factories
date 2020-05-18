@@ -11,9 +11,11 @@
 namespace Laramore\Factories;
 
 use InvalidArgumentException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\FactoryBuilder as BaseFactoryBuilder;
-use Laramore\Contracts\Field\RelationField;
+use Laramore\Contracts\Field\{
+    RelationField, ManyRelationField
+};
+use Laramore\Facades\Factory;
 
 class FactoryBuilder extends BaseFactoryBuilder
 {
@@ -23,6 +25,13 @@ class FactoryBuilder extends BaseFactoryBuilder
      * @var array
      */
     protected $attributes = [];
+
+    /**
+     * Amount to generate for many relation states.
+     *
+     * @var int
+     */
+    protected $stateAmount;
 
     /**
      * Indicate if the builder has an attribute.
@@ -218,15 +227,32 @@ class FactoryBuilder extends BaseFactoryBuilder
     public function applyStates(array $states=[], array $attributes=[])
     {
         foreach ($states as $state) {
+            if (strpos($state, ':') !== false) {
+                [$state, $this->stateAmount] = explode(':', $state);
+            }
+
             if (!isset($this->states[$this->class][$state])) {
                 if ($this->stateHasAfterCallback($state)) {
                     continue;
                 }
 
-                throw new InvalidArgumentException("Unable to locate [{$state}] state for [{$this->class}].");
+                if (!$this->class::getMeta()->hasField($state, RelationField::class)) {
+                    throw new InvalidArgumentException("Unable to locate [{$state}] state for [{$this->class}].");
+                }
+
+                $field = $this->class::getMeta()->getField($state, RelationField::class);
+                $factory = Factory::of($field->getTargetModel());
+
+                if ($field instanceof ManyRelationField) {
+                    $factory->times($this->stateAmount ?? $this->faker->numberBetween(0, 5));
+                }
+
+                $this->setAttribute($field->getName(), $factory);
+            } else {
+                $this->stateAttributes($state, $attributes);
             }
 
-            $this->stateAttributes($state, $attributes);
+            $this->stateAmount = null;
         }
 
         return $this;
@@ -266,14 +292,16 @@ class FactoryBuilder extends BaseFactoryBuilder
     {
         foreach ($this->class::getMeta()->getFields() as $field) {
             // Relations are handled by states.
-            if ($field instanceof RelationField || $field->getOwner() !== $field->getMeta()) {
+            if ($field instanceof RelationField
+                || $field->getOwner() !== $field->getMeta()
+                || \is_null($field->getType()->getFactoryName())) {
                 continue;
             }
 
             $name = $field->getName();
 
             if (!isset($this->attributes[$name])) {
-                $this->attributes[$name] = $field->getOwner()->generateFieldValue($field);
+                $this->setAttribute($name, $field->getOwner()->generateFieldValue($field));
             }
         }
 
