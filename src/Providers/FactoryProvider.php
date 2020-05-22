@@ -13,19 +13,16 @@ namespace Laramore\Providers;
 use Illuminate\Support\{
     ServiceProvider, Str
 };
-use Laramore\Facades\{
-	Validation, Type
-};
+use Laramore\Facades\Type;
 use Laramore\Contracts\{
     Provider\LaramoreProvider, Manager\LaramoreManager
 };
 use Laramore\Traits\Provider\MergesConfig;
 use Laramore\Fields\BaseField;
-use Laramore\Eloquent\Meta;
 
 use Faker\Generator as FakerGenerator;
 use Illuminate\Database\Eloquent\Factory as EloquentFactory;
-use Laramore\Factories\Factory;
+use Laramore\Factories\FactoryManager;
 
 class FactoryProvider extends ServiceProvider implements LaramoreProvider
 {
@@ -82,7 +79,7 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
     public static function generateManager(): LaramoreManager
     {
         if (\is_null(static::$manager)) {
-            static::$manager = new Factory(app(FakerGenerator::class));
+            static::$manager = new FactoryManager(app(FakerGenerator::class));
 
             foreach (static::getDefaults() as $path) {
                 static::$manager->load($path);
