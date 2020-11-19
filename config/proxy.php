@@ -26,7 +26,7 @@ return [
             'static' => true,
             'callback' => [Factory::class, 'state'],
         ],
-        'conceive' => [
+        'new' => [
             'static' => true,
             'callback' => [Factory::class, 'create'],
         ],

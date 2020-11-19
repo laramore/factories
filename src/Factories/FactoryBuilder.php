@@ -12,10 +12,12 @@ namespace Laramore\Factories;
 
 use InvalidArgumentException;
 use Illuminate\Database\Eloquent\FactoryBuilder as BaseFactoryBuilder;
+use Faker\Generator as FakerGenerator;
 use Laramore\Contracts\Field\{
-    RelationField, ManyRelationField
+    RelationField, ManyRelationField, MorphRelationField
 };
 use Laramore\Facades\Factory;
+use Laramore\Facades\Option;
 
 class FactoryBuilder extends BaseFactoryBuilder
 {
@@ -248,7 +250,12 @@ class FactoryBuilder extends BaseFactoryBuilder
                 }
 
                 $field = $this->class::getMeta()->getField($state, RelationField::class);
-                $factory = Factory::of($field->getTargetModel());
+
+                if ($field instanceof MorphRelationField) {
+                    $factory = Factory::of(app(FakerGenerator::class)->randomElement($field->getTargetModels()));
+                } else {
+                    $factory = Factory::of($field->getTargetModel());
+                }
 
                 if ($field instanceof ManyRelationField) {
                     $factory->times($this->stateAmount ?? $this->faker->numberBetween(0, 5));
@@ -298,8 +305,9 @@ class FactoryBuilder extends BaseFactoryBuilder
     protected function generateMissingAttributes()
     {
         foreach ($this->class::getMeta()->getFields() as $field) {
-            // Relations are handled by states.
-            if ($field instanceof RelationField
+            // Relations are handled by states. Moreover, they are auto generated
+            // if the relation field has the option required.
+            if (($field instanceof RelationField && !$field->hasOption(Option::required()))
                 || $field->getOwner() !== $field->getMeta()
                 || \is_null($field->getType()->getFactoryName())) {
                 continue;

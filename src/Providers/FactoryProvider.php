@@ -22,6 +22,7 @@ use Laramore\Fields\BaseField;
 
 use Faker\Generator as FakerGenerator;
 use Illuminate\Database\Eloquent\Factory as EloquentFactory;
+use Laramore\Facades\Factory;
 use Laramore\Factories\FactoryManager;
 
 class FactoryProvider extends ServiceProvider implements LaramoreProvider
@@ -121,21 +122,28 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
     protected function setMacros()
     {
         BaseField::macro('generate', function () {
+            /** @var \Laramore\Fields\BaseField $this */
             $name = $this->getType()->getFactoryName();
 
             if (\is_null($name)) {
-                return null;
+                return $this->getDefault();
             }
 
             if ($name === 'enum') {
                 return app(FakerGenerator::class)->randomElement($this->getValues());
             }
 
-            return $this->transform(
-                $this->cast(app(FakerGenerator::class)->format(
-                    Str::camel($name), $this->getType()->getFactoryParameters()
-                ))
-            );
+            if ($name === 'relation' || $name === 'reversed_relation') {
+                return Factory::of($this->getTargetModel());
+            }
+
+            if ($name === 'morph_relation' || $name === 'reversed_morph_relation') {
+                return Factory::of(app(FakerGenerator::class)->randomElement($this->getTargetModels()));
+            }
+
+            return $this->cast(app(FakerGenerator::class)->format(
+                Str::camel($name), $this->getType()->getFactoryParameters()
+            ));
         });
     }
 }
