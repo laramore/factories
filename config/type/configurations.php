@@ -35,6 +35,24 @@ return [
     'small_unsigned_integer' => [
         'factory_name' => 'randomNumber',
     ],
+    'decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
+    'unsigned_decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
+    'big_decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
+    'small_decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
+    'big_unsigned_decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
+    'small_unsigned_decimal' => [
+        'factory_name' => 'randomFloat',
+    ],
     'email' => [
         'factory_name' => 'safeEmail',
     ],
