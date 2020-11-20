@@ -22,6 +22,11 @@ use Laramore\Facades\Option;
 class FactoryBuilder extends BaseFactoryBuilder
 {
     /**
+     * Is this builder in creation.
+     */
+    protected $creation = false;
+
+    /**
      * Generated attributes.
      *
      * @var array
@@ -109,6 +114,17 @@ class FactoryBuilder extends BaseFactoryBuilder
         $this->attributes = \array_merge($this->attributes, $attributes);
 
         return $this;
+    }
+
+    /**
+     * Create a collection of models and persist them to the database.
+     *
+     * @param  array $attributes
+     * @return mixed
+     */
+    public function new(array $attributes=[])
+    {
+        return $this->new($attributes);
     }
 
     /**
