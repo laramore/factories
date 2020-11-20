@@ -11,6 +11,7 @@
 namespace Laramore\Factories;
 
 use InvalidArgumentException;
+use Illuminate\Support\Arr;
 use Illuminate\Database\Eloquent\FactoryBuilder as BaseFactoryBuilder;
 use Faker\Generator as FakerGenerator;
 use Laramore\Contracts\Field\{
@@ -34,6 +35,20 @@ class FactoryBuilder extends BaseFactoryBuilder
     protected $attributes = [];
 
     /**
+     * With attributes.
+     *
+     * @var array
+     */
+    protected $with = [];
+
+    /**
+     * Without attributes.
+     *
+     * @var array
+     */
+    protected $without = [];
+
+    /**
      * Amount to generate for many relation states.
      *
      * @var int
@@ -52,6 +67,17 @@ class FactoryBuilder extends BaseFactoryBuilder
     }
 
     /**
+     * Indicate if the builder has an attribute.
+     *
+     * @param string $key
+     * @return boolean
+     */
+    public function has(string $key)
+    {
+        return $this->hasAttribute($key);
+    }
+
+    /**
      * Define an attribute.
      *
      * @param string $key
@@ -60,16 +86,37 @@ class FactoryBuilder extends BaseFactoryBuilder
      */
     public function setAttribute(string $key, $value)
     {
+        if (\count($this->without) && \in_array($key, $this->without)) {
+            return $this;
+        }
+
         if ($value instanceof static
             && \is_null($value->amount)
             && !\is_null($this->stateAmount)
-            && $this->class::getMeta()->hasField($key, MultiRelationField::class)) {
+            && $this->class::getMeta()->hasField($key, MultiRelationField::class)
+        ) {
             $value->times($this->stateAmount);
         }
 
         $this->attributes[$key] = $value;
 
         return $this;
+    }
+
+    /**
+     * Define an attribute.
+     *
+     * @param string $key
+     * @param mixed  $value
+     * @return self
+     */
+    public function set($key, $value)
+    {
+        if (\is_array($key)) {
+            return $this->mergeAttributes($key);
+        }
+
+        return $this->setAttribute($key, $value);
     }
 
     /**
@@ -94,6 +141,17 @@ class FactoryBuilder extends BaseFactoryBuilder
     }
 
     /**
+     * Return or generate an attribute.
+     *
+     * @param string $key
+     * @return mixed
+     */
+    public function get(string $key)
+    {
+        return $this->getAttribute($key);
+    }
+
+    /**
      * Return all generated attributes.
      *
      * @return array
@@ -114,6 +172,84 @@ class FactoryBuilder extends BaseFactoryBuilder
         $this->attributes = \array_merge($this->attributes, $attributes);
 
         return $this;
+    }
+
+    /**
+     * Define attributes to use.
+     *
+     * @param array $attributes
+     * @return self
+     */
+    public function withAttributes(array $attributes) 
+    {
+        $this->with = \array_merge($this->with, $attributes);
+
+        return $this;
+    }
+
+    /**
+     * Add one attribute to use.
+     *
+     * @param string $attribute
+     * @return self
+     */
+    public function withAttribute($attribute) 
+    {
+        return $this->withAttributes([$attribute]);
+    }
+
+    /**
+     * Define attributes to use.
+     *
+     * @param array $attributes
+     * @return self
+     */
+    public function with($attributes)
+    {
+        if (\func_num_args() === 1 && \is_array($attributes)) {
+            return $this->withAttributes($attributes);
+        }
+
+        return $this->withAttributes(\func_get_args());
+    }
+
+    /**
+     * Define attributes not to use.
+     *
+     * @param array $attributes
+     * @return self
+     */
+    public function withoutAttributes(array $attributes) 
+    {
+        $this->without = \array_merge($this->without, $attributes);
+
+        return $this;
+    }
+
+    /**
+     * Add one attribute not to use.
+     *
+     * @param string $attribute
+     * @return self
+     */
+    public function withoutAttribute($attribute) 
+    {
+        return $this->withoutAttributes([$attribute]);
+    }
+
+    /**
+     * Define attributes not to use.
+     *
+     * @param array $attributes
+     * @return self
+     */
+    public function without($attributes)
+    {
+        if (\func_num_args() === 1 && \is_array($attributes)) {
+            return $this->withoutAttributes($attributes);
+        }
+
+        return $this->withoutAttributes(\func_get_args());
     }
 
     /**
@@ -214,6 +350,8 @@ class FactoryBuilder extends BaseFactoryBuilder
      */
     public function generateAttributes()
     {
+        $definedAttributes = $this->attributes;
+
         if (isset($this->definitions[$this->class][$this->name])) {
             \call_user_func(
                 $this->definitions[$this->class][$this->name],
@@ -222,6 +360,8 @@ class FactoryBuilder extends BaseFactoryBuilder
         } else if ($this->name !== 'default') {
             throw new InvalidArgumentException("Unable to locate factory with name [{$this->name}] [{$this->class}].");
         }
+
+        $this->attributes = \array_merge($this->attributes, $definedAttributes);
 
         $this->applyStates($this->activeStates);
         $this->generateMissingAttributes();
@@ -289,6 +429,22 @@ class FactoryBuilder extends BaseFactoryBuilder
     }
 
     /**
+     * Apply the active states to the model definition array.
+     *
+     * @param  string|array $state
+     * @param  array  $attributes
+     * @return mixed
+     */
+    public function apply($state, array $attributes=[])
+    {
+        if (\is_array($state)) {
+            return $this->applyStates($state, $attributes);
+        }
+
+        return $this->applyState($state, $attributes);
+    }
+
+    /**
      * Get the state attributes.
      *
      * @param  string|mixed $state
@@ -321,17 +477,20 @@ class FactoryBuilder extends BaseFactoryBuilder
     protected function generateMissingAttributes()
     {
         foreach ($this->class::getMeta()->getFields() as $field) {
+            $name = $field->getName();
+
             // Relations are handled by states. Moreover, they are auto generated
             // if the relation field has the option required.
             if (($field instanceof RelationField && !$field->hasOption(Option::required()))
                 || $field->getOwner() !== $field->getMeta()
-                || \is_null($field->getType()->getFactoryName())) {
+                || \is_null($field->getType()->getFactoryName())   
+                || (\count($this->with) && !\in_array($name, $this->with))
+                || (\count($this->without) && \in_array($name, $this->without))
+            ) {
                 continue;
             }
 
-            $name = $field->getName();
-
-            if (!isset($this->attributes[$name])) {
+            if (!Arr::exists($this->attributes, $name)) {
                 $this->setAttribute($name, $field->getOwner()->generateFieldValue($field));
             }
         }
