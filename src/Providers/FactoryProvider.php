@@ -124,6 +124,7 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
         BaseField::macro('generate', function () {
             /** @var \Laramore\Fields\BaseField $this */
             $name = $this->getType()->getFactoryName();
+            $parameters = $this->getType()->getFactoryParameters();
 
             if (\is_null($name)) {
                 return $this->getDefault();
@@ -141,8 +142,21 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
                 return Factory::of(app(FakerGenerator::class)->randomElement($this->getTargetModels()));
             }
 
+            if ($name === 'randomFloat') {
+                $maxDigits = $this->totalDigits - $this->decimalDigits;
+                $max = pow($maxDigits + 1, 10) - 1;
+
+                if (\count($parameters) === 0) {
+                    $parameters[] = - $max;
+                }
+
+                if (\count($parameters) === 1) {
+                    $parameters[] = $max;
+                }
+            }
+
             return $this->cast(app(FakerGenerator::class)->format(
-                Str::camel($name), $this->getType()->getFactoryParameters()
+                Str::camel($name), $parameters
             ));
         });
     }
