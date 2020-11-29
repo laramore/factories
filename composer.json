@@ -50,10 +50,7 @@
         "laravel": {
             "providers": [
                 "Laramore\\Providers\\FactoryProvider"
-            ],
-            "aliases": {
-                "Factory": "Laramore\\Facades\\Factory"
-            }
+            ]
         }
     }
 }
