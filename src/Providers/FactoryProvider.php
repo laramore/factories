@@ -14,27 +14,15 @@ use Illuminate\Support\{
     ServiceProvider, Str
 };
 use Laramore\Facades\Type;
-use Laramore\Contracts\{
-    Provider\LaramoreProvider, Manager\LaramoreManager
-};
 use Laramore\Traits\Provider\MergesConfig;
 use Laramore\Fields\BaseField;
 
 use Faker\Generator as FakerGenerator;
-use Illuminate\Database\Eloquent\Factory as EloquentFactory;
-use Laramore\Facades\Factory;
-use Laramore\Factories\FactoryManager;
+use Laramore\Factories\Factory;
 
-class FactoryProvider extends ServiceProvider implements LaramoreProvider
+class FactoryProvider extends ServiceProvider
 {
     use MergesConfig;
-
-    /**
-     * Factory manager.
-     *
-     * @var Factory
-     */
-    protected static $manager;
 
     /**
      * Before booting, create our definition for migrations.
@@ -55,10 +43,6 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
             __DIR__.'/../../config/proxy.php', 'proxy',
         );
 
-        $this->app->singleton(EloquentFactory::class, function () {
-            return static::generateManager();
-        });
-
         $this->app->booting([$this, 'bootingCallback']);
     }
 
@@ -72,33 +56,6 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
         return [app()->databasePath('factories')];
     }
 
-    /**
-     * Generate the corresponded manager.
-     *
-     * @return LaramoreManager
-     */
-    public static function generateManager(): LaramoreManager
-    {
-        if (\is_null(static::$manager)) {
-            static::$manager = new FactoryManager(app(FakerGenerator::class));
-
-            foreach (static::getDefaults() as $path) {
-                static::$manager->load($path);
-            }
-        }
-
-        return static::$manager;
-    }
-
-    /**
-     * During booting, add our custom methods.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-
-    }
 
     /**
      * Before booting, add a new validation definition and fix increment default value.
@@ -135,16 +92,16 @@ class FactoryProvider extends ServiceProvider implements LaramoreProvider
             }
 
             if ($name === 'relation' || $name === 'reversed_relation') {
-                return Factory::of($this->getTargetModel());
+                return Factory::factoryForModel($this->getTargetModel());
             }
 
             if ($name === 'morph_relation' || $name === 'reversed_morph_relation') {
-                return Factory::of(app(FakerGenerator::class)->randomElement($this->getTargetModels()));
+                return Factory::factoryForModel(app(FakerGenerator::class)->randomElement($this->getTargetModels()));
             }
 
             if ($name === 'randomFloat') {
                 $maxDigits = $this->totalDigits - $this->decimalDigits;
-                $max = pow($maxDigits + 1, 10) - 1;
+                $max = pow(10, $maxDigits + 1) - 1;
 
                 if (\count($parameters) === 0) {
                     $parameters[] = - $max;
