@@ -1,6 +1,6 @@
 <?php
 
-use Laramore\Facades\Factory;
+use Laramore\Factories\Factory;
 
 return [
 
@@ -16,23 +16,15 @@ return [
     'configurations' => [
         'factory' => [
             'static' => true,
-            'callback' => 'factory',
-        ],
-        'defineFactory' => [
-            'static' => true,
-            'callback' => [Factory::class, 'define'],
-        ],
-        'defineState' => [
-            'static' => true,
-            'callback' => [Factory::class, 'state'],
+            'callback' => [Factory::class, 'factoryForModel'],
         ],
         'new' => [
             'static' => true,
-            'callback' => [Factory::class, 'create'],
+            'callback' => [Factory::class, 'createForModel'],
         ],
         'make' => [
             'static' => true,
-            'callback' => [Factory::class, 'make'],
+            'callback' => [Factory::class, 'makeForModel'],
         ],
     ],
 
