@@ -11,7 +11,7 @@
 namespace Laramore\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory as BaseFactory;
-
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\{
     Str, Arr
 };
@@ -59,9 +59,11 @@ class Factory extends BaseFactory
      */
     public function for(BaseFactory $factory, $relationship = null)
     {
-        return $this->newInstance(['for' => $this->for->merge([
-            ($relationship ?: Str::camel(class_basename($factory->modelName()))) => $factory,
-        ])]);
+        return $this->newInstance([
+            'for' => $this->for->merge([
+                Str::snake($relationship ?: Str::camel(class_basename($factory->modelName()))) => $factory,
+            ]),
+        ]);
     }
     
     /**
@@ -80,6 +82,43 @@ class Factory extends BaseFactory
         });
 
         return $this->for->all();
+    }
+
+    /**
+     * Define a child relationship for the model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Factories\Factory  $factory
+     * @param  string|null  $relationship
+     * @return static
+     */
+    public function has(BaseFactory $factory, $relationship = null)
+    {
+        return $this->newInstance([
+            'has' => $this->has->merge([
+                Str::snake($relationship ?: $this->guessRelationship($factory->modelName())) => $factory,
+            ]),
+        ]);
+    }
+
+    /**
+     * Create the children for the given model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return void
+     */
+    protected function createChildren(Model $model)
+    {
+        Model::unguarded(function () use ($model) {
+            $this->has->each(function ($has, $relationship) use ($model) {
+                $field = $this->getMeta()->getField($relationship)->getReversedField();
+
+                $children = $has->state([
+                    $field->getName() => $model,
+                ])->create();
+
+                $model->setRelationValue($relationship, $children);
+            });
+        });
     }
 
     /**
