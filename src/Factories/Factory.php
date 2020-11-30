@@ -13,39 +13,13 @@ namespace Laramore\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory as BaseFactory;
 
 use Illuminate\Support\{
-    Collection, Arr
+    Str, Arr
 };
 use Laramore\Contracts\Field\RelationField;
-use Laramore\Facades\Option;
 
 
 class Factory extends BaseFactory
 {
-    /**
-     * Create a new factory instance.
-     *
-     * @param  int|null  $count
-     * @param  \Illuminate\Support\Collection  $states
-     * @param  \Illuminate\Support\Collection  $has
-     * @param  \Illuminate\Support\Collection  $for
-     * @param  \Illuminate\Support\Collection  $afterMaking
-     * @param  \Illuminate\Support\Collection  $afterCreating
-     * @param  string  $connection
-     * @return void
-     */
-    public function __construct($count = null,
-                                ?Collection $states = null,
-                                ?Collection $has = null,
-                                ?Collection $for = null,
-                                ?Collection $afterMaking = null,
-                                ?Collection $afterCreating = null,
-                                $connection = null)
-    {
-        parent::__construct($count, $states, $has, $for, $afterMaking, $afterCreating, $connection);
-
-        $this->meta = $this->getModelClass()::getMeta();
-    }
-
     /**
      * Define the model's default state.
      *
@@ -73,9 +47,41 @@ class Factory extends BaseFactory
      */
     public function getMeta()
     {
-        return $this->meta;
+        return $this->getModelClass()::getMeta();
+    }
+
+    /**
+     * Define a parent relationship for the model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Factories\Factory  $factory
+     * @param  string|null  $relationship
+     * @return static
+     */
+    public function for(BaseFactory $factory, $relationship = null)
+    {
+        return $this->newInstance(['for' => $this->for->merge([
+            ($relationship ?: Str::camel(class_basename($factory->modelName()))) => $factory,
+        ])]);
     }
     
+    /**
+     * Create the parent relationship resolvers (as deferred Closures).
+     *
+     * @return array
+     */
+    protected function parentResolvers()
+    {
+        $this->for = $this->for->map(function ($factory) {
+            if ($factory instanceof BaseFactory) {
+                return $factory->create();
+            }
+
+            return $factory;
+        });
+
+        return $this->for->all();
+    }
+
     /**
      * Expand all attributes to their underlying values.
      *
@@ -114,7 +120,7 @@ class Factory extends BaseFactory
 
             // Relations are handled by states. Moreover, they are auto generated
             // if the relation field has the option required.
-            if (($field instanceof RelationField && !$field->hasOption(Option::required()))
+            if (($field instanceof RelationField)
                 || $field->getOwner() !== $field->getMeta()
                 || \is_null($field->getType()->getFactoryName())   
             ) {
@@ -166,5 +172,36 @@ class Factory extends BaseFactory
     public static function makeForModel(string $modelName)
     {
         return $modelName::factory()->make();
+    }
+
+    /**
+     * Proxy dynamic factory methods onto their proper methods.
+     *
+     * @param  string  $method
+     * @param  array  $parameters
+     * @return mixed
+     */
+    public function __call($method, $parameters)
+    {
+        if (! Str::startsWith($method, ['for', 'has'])) {
+            static::throwBadMethodCallException($method);
+        }
+
+        $relationship = Str::camel(Str::substr($method, 3));
+
+        $relatedModel = get_class($this->newModel()->{$relationship}()->getRelated());
+
+        $factory = $relatedModel::factory();
+
+        if (Str::startsWith($method, 'for')) {
+            return $this->for($factory->state($parameters[0] ?? []), $relationship);
+        } elseif (Str::startsWith($method, 'has')) {
+            return $this->has(
+                $factory
+                    ->count(is_numeric($parameters[0] ?? null) ? $parameters[0] : 1)
+                    ->state((is_callable($parameters[0] ?? null) || is_array($parameters[0] ?? null)) ? $parameters[0] : ($parameters[1] ?? [])),
+                $relationship
+            );
+        }
     }
 }

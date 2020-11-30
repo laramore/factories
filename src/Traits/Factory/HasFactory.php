@@ -8,7 +8,7 @@
  * @license MIT
  */
 
-namespace Illuminate\Database\Eloquent\Factories;
+namespace Laramore\Traits\Factory;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory as BaseHasFactory;
 
@@ -16,4 +16,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory as BaseHasFactory;
 trait HasFactory
 {
     use BaseHasFactory;
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    public static function newFactory()
+    {
+        //
+    }
 }
