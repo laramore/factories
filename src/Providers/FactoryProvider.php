@@ -18,6 +18,7 @@ use Laramore\Traits\Provider\MergesConfig;
 use Laramore\Fields\BaseField;
 
 use Faker\Generator as FakerGenerator;
+use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Factories\Factory;
 
 class FactoryProvider extends ServiceProvider
@@ -82,6 +83,7 @@ class FactoryProvider extends ServiceProvider
             /** @var \Laramore\Fields\BaseField $this */
             $name = $this->getType()->getFactoryName();
             $parameters = $this->getType()->getFactoryParameters();
+            $faker = app(FakerGenerator::class);
 
             if (\is_null($name)) {
                 return $this->getDefault();
@@ -92,10 +94,22 @@ class FactoryProvider extends ServiceProvider
             }
 
             if ($name === 'relation' || $name === 'reversed_relation') {
+                if ($this instanceof ManyRelationField) {
+                    return Factory::factoryForModel($this->getTargetModel())->count(
+                        $faker->numberBetween(0, 5)
+                    );
+                }
+
                 return Factory::factoryForModel($this->getTargetModel());
             }
 
             if ($name === 'morph_relation' || $name === 'reversed_morph_relation') {
+                if ($this instanceof ManyRelationField) {
+                    return Factory::factoryForModel($this->getTargetModel())->count(
+                        $faker->numberBetween(0, 5)
+                    );
+                }
+
                 return Factory::factoryForModel(app(FakerGenerator::class)->randomElement($this->getTargetModels()));
             }
 
@@ -112,7 +126,7 @@ class FactoryProvider extends ServiceProvider
                 }
             }
 
-            return $this->cast(app(FakerGenerator::class)->format(
+            return $this->cast($faker->format(
                 Str::camel($name), $parameters
             ));
         });

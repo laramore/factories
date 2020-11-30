@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\{
     Str, Arr
 };
+use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Contracts\Field\RelationField;
 use Laramore\Facades\Option;
 
@@ -111,9 +112,10 @@ class Factory extends BaseFactory
         Model::unguarded(function () use ($model) {
             $this->has->each(function ($has, $relationship) use ($model) {
                 $field = $this->getMeta()->getField($relationship)->getReversedField();
+                $value = $field instanceof ManyRelationField ? $model->newCollection([$model]) : $model;
 
                 $children = $has->state([
-                    $field->getName() => $model,
+                    $field->getName() => $value,
                 ])->create();
 
                 $model->setRelationValue($relationship, $children);
@@ -167,7 +169,11 @@ class Factory extends BaseFactory
             }
 
             if (!Arr::exists($definition, $name)) {
-                $definition[$name] = $field->getOwner()->generateFieldValue($field);
+                if ($field instanceof RelationField && !$this->has->has($name)) {
+                    $this->has($field->getOwner()->generateFieldValue($field), $name);
+                } else {
+                    $definition[$name] = $field->getOwner()->generateFieldValue($field);
+                }
             }
         }
 
