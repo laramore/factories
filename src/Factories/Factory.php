@@ -16,7 +16,7 @@ use Illuminate\Support\{
     Str, Arr
 };
 use Laramore\Contracts\Field\RelationField;
-
+use Laramore\Facades\Option;
 
 class Factory extends BaseFactory
 {
@@ -159,7 +159,7 @@ class Factory extends BaseFactory
 
             // Relations are handled by states. Moreover, they are auto generated
             // if the relation field has the option required.
-            if (($field instanceof RelationField)
+            if (($field instanceof RelationField && !$field->hasOption(Option::required()))
                 || $field->getOwner() !== $field->getMeta()
                 || \is_null($field->getType()->getFactoryName())   
             ) {
