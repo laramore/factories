@@ -17,6 +17,7 @@ use Illuminate\Support\{
 };
 use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Contracts\Field\RelationField;
+use Laramore\Elements\Element;
 use Laramore\Facades\Option;
 
 class Factory extends BaseFactory
@@ -60,9 +61,15 @@ class Factory extends BaseFactory
      */
     public function for(BaseFactory $factory, $relationship = null)
     {
+        $relationship = Str::snake($relationship ?: Str::camel(class_basename($factory->modelName())));
+
+        if ($this->getMeta()->hasField($relationship, ManyRelationField::class)) {
+            throw new \LogicException("Only use `has` for single relations. Use `has` instead for `$relationship` relationship");
+        }
+
         return $this->newInstance([
             'for' => $this->for->merge([
-                Str::snake($relationship ?: Str::camel(class_basename($factory->modelName()))) => $factory,
+                $relationship => $factory,
             ]),
         ]);
     }
@@ -94,9 +101,15 @@ class Factory extends BaseFactory
      */
     public function has(BaseFactory $factory, $relationship = null)
     {
+        $relationship = Str::snake($relationship ?: $this->guessRelationship($factory->modelName()));
+
+        if ($this->getMeta()->hasField($relationship, RelationField::class) && !$this->getMeta()->hasField($relationship, ManyRelationField::class)) {
+            throw new \LogicException("Only use `has` for many relations. Use `for` instead for `$relationship` relationship");
+        }
+
         return $this->newInstance([
             'has' => $this->has->merge([
-                Str::snake($relationship ?: $this->guessRelationship($factory->modelName())) => $factory,
+                $relationship => $factory,
             ]),
         ]);
     }
@@ -134,7 +147,10 @@ class Factory extends BaseFactory
         $definition = $this->generateMissingAttributes($definition);
     
         return collect($definition)->map(function ($attribute, $key) use (&$definition) {
-            if (is_callable($attribute) && ! is_string($attribute) && ! is_array($attribute)) {
+            if (is_callable($attribute) 
+                && !is_string($attribute) 
+                && !is_array($attribute) 
+                && !($attribute instanceof Element)) {
                 $attribute = $attribute($definition);
             }
 
@@ -163,13 +179,14 @@ class Factory extends BaseFactory
             // if the relation field has the option required.
             if (($field instanceof RelationField && !$field->hasOption(Option::required()))
                 || $field->getOwner() !== $field->getMeta()
-                || \is_null($field->getType()->getFactoryName())   
+                || (\is_null($field->getFactoryFormater()) && !\method_exists($field, 'generate')) 
+                || ($field->hasOption(Option::nullable()))
             ) {
                 continue;
             }
 
             if (!Arr::exists($definition, $name)) {
-                if ($field instanceof RelationField && !$this->has->has($name)) {
+                if ($field instanceof ManyRelationField && !$this->has->has($name)) {
                     $this->has($field->getOwner()->generateFieldValue($field), $name);
                 } else {
                     $definition[$name] = $field->getOwner()->generateFieldValue($field);
