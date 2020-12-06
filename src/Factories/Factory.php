@@ -13,8 +13,9 @@ namespace Laramore\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory as BaseFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\{
-    Str, Arr
+    Str, Arr, Collection
 };
+use Laramore\Contracts\Field\Field;
 use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Contracts\Field\RelationField;
 use Laramore\Elements\Element;
@@ -22,6 +23,77 @@ use Laramore\Facades\Option;
 
 class Factory extends BaseFactory
 {
+    /**
+     * Fields to generate dynamically.
+     *
+     * @var \Illuminate\Support\Collection
+     */
+    protected $with;
+
+    /**
+     * Create a new factory instance.
+     *
+     * @param  integer|null                        $count
+     * @param  \Illuminate\Support\Collection|null $states
+     * @param  \Illuminate\Support\Collection|null $has
+     * @param  \Illuminate\Support\Collection|null $for
+     * @param  \Illuminate\Support\Collection|null $with
+     * @param  \Illuminate\Support\Collection|null $afterMaking
+     * @param  \Illuminate\Support\Collection|null $afterCreating
+     * @param  string|mixed                        $connection
+     * @return void
+     */
+    public function __construct($count=null,
+                                ?Collection $states=null,
+                                ?Collection $has=null,
+                                ?Collection $for=null,
+                                ?Collection $with=null,
+                                ?Collection $afterMaking=null,
+                                ?Collection $afterCreating=null,
+                                $connection=null)
+    {
+        parent::__construct($count, $states, $has, $for, $afterMaking, $afterCreating, $connection);
+
+        $this->with = $with ?: $this->resolveWith();
+    }
+
+    /**
+     * Resolve default fields to generate.
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    protected function resolveWith()
+    {
+        $with = new Collection($this->getMeta()->getFields());
+
+        return $with->filter(function (Field $field) {
+            return ($field->getOwner() === $field->getMeta()
+                && !$field->hasOption(Option::nullable())
+                && (!\is_null($field->getFactoryFormater()) || \method_exists($field, 'generate'))
+            );
+        });
+    }
+
+    /**
+     * Create a new instance of the factory builder with the given mutated properties.
+     *
+     * @param  array $arguments
+     * @return static
+     */
+    protected function newInstance(array $arguments=[])
+    {
+        return new static(...array_values(array_merge([
+            'count' => $this->count,
+            'states' => $this->states,
+            'has' => $this->has,
+            'for' => $this->for,
+            'with' => $this->with,
+            'afterMaking' => $this->afterMaking,
+            'afterCreating' => $this->afterCreating,
+            'connection' => $this->connection,
+        ], $arguments)));
+    }
+
     /**
      * Define the model's default state.
      *
@@ -53,13 +125,35 @@ class Factory extends BaseFactory
     }
 
     /**
-     * Define a parent relationship for the model.
+     * Add a new "field" to generate.
      *
-     * @param  \Illuminate\Database\Eloquent\Factories\Factory  $factory
-     * @param  string|null  $relationship
+     * @param  string $fieldName
      * @return static
      */
-    public function for(BaseFactory $factory, $relationship = null)
+    public function with(string $fieldName)
+    {
+        return $this->newInstance(['with' => $this->with->merge([$fieldName => $this->getMeta()->getField($fieldName)])]);
+    }
+
+    /**
+     * Remove a "field" to generate.
+     *
+     * @param  string $fieldName
+     * @return static
+     */
+    public function without(string $fieldName)
+    {
+        return $this->newInstance(['with' => $this->with->diff([$fieldName])]);
+    }
+
+    /**
+     * Define a parent relationship for the model.
+     *
+     * @param  BaseFactory $factory
+     * @param  string|null $relationship
+     * @return static
+     */
+    public function for(BaseFactory $factory, $relationship=null)
     {
         $relationship = Str::snake($relationship ?: Str::camel(class_basename($factory->modelName())));
 
@@ -73,7 +167,7 @@ class Factory extends BaseFactory
             ]),
         ]);
     }
-    
+
     /**
      * Create the parent relationship resolvers (as deferred Closures).
      *
@@ -95,11 +189,11 @@ class Factory extends BaseFactory
     /**
      * Define a child relationship for the model.
      *
-     * @param  \Illuminate\Database\Eloquent\Factories\Factory  $factory
-     * @param  string|null  $relationship
+     * @param  BaseFactory $factory
+     * @param  string|null $relationship
      * @return static
      */
-    public function has(BaseFactory $factory, $relationship = null)
+    public function has(BaseFactory $factory, $relationship=null)
     {
         $relationship = Str::snake($relationship ?: $this->guessRelationship($factory->modelName()));
 
@@ -117,7 +211,7 @@ class Factory extends BaseFactory
     /**
      * Create the children for the given model.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model $model
      * @return void
      */
     protected function createChildren(Model $model)
@@ -139,17 +233,17 @@ class Factory extends BaseFactory
     /**
      * Expand all attributes to their underlying values.
      *
-     * @param  array  $definition
+     * @param  array $definition
      * @return array
      */
     protected function expandAttributes(array $definition)
     {
         $definition = $this->generateMissingAttributes($definition);
-    
+
         return collect($definition)->map(function ($attribute, $key) use (&$definition) {
-            if (is_callable($attribute) 
-                && !is_string($attribute) 
-                && !is_array($attribute) 
+            if (is_callable($attribute)
+                && !is_string($attribute)
+                && !is_array($attribute)
                 && !($attribute instanceof Element)) {
                 $attribute = $attribute($definition);
             }
@@ -167,21 +261,15 @@ class Factory extends BaseFactory
     /**
      * Generate missing attributes.
      *
-     * @param  array  $definition
+     * @param  array $definition
      * @return array
      */
     protected function generateMissingAttributes(array $definition)
     {
-        foreach ($this->getMeta()->getFields() as $field) {
-            $name = $field->getName();
-
+        foreach ($this->with as $name => $field) {
             // Relations are handled by states. Moreover, they are auto generated
             // if the relation field has the option required.
-            if (($field instanceof RelationField && !$field->hasOption(Option::required()))
-                || $field->getOwner() !== $field->getMeta()
-                || (\is_null($field->getFactoryFormater()) && !\method_exists($field, 'generate')) 
-                || ($field->hasOption(Option::nullable()))
-            ) {
+            if (($field instanceof RelationField && !$field->hasOption(Option::required()))) {
                 continue;
             }
 
@@ -200,7 +288,7 @@ class Factory extends BaseFactory
     /**
      * Get a new factory instance for the given model name.
      *
-     * @param  string  $modelName
+     * @param  string $modelName
      * @return static
      */
     public static function factoryForModel(string $modelName)
@@ -217,7 +305,7 @@ class Factory extends BaseFactory
     /**
      * Create with a factory.
      *
-     * @param  string  $modelName
+     * @param  string $modelName
      * @return mixed
      */
     public static function createForModel(string $modelName)
@@ -228,7 +316,7 @@ class Factory extends BaseFactory
     /**
      * Make with a factory.
      *
-     * @param  string  $modelName
+     * @param  string $modelName
      * @return mixed
      */
     public static function makeForModel(string $modelName)
@@ -239,8 +327,8 @@ class Factory extends BaseFactory
     /**
      * Proxy dynamic factory methods onto their proper methods.
      *
-     * @param  string  $method
-     * @param  array  $parameters
+     * @param  string|mixed $method
+     * @param  array|mixed  $parameters
      * @return mixed
      */
     public function __call($method, $parameters)
@@ -256,12 +344,12 @@ class Factory extends BaseFactory
         $factory = $relatedModel::factory();
 
         if (Str::startsWith($method, 'for')) {
-            return $this->for($factory->state($parameters[0] ?? []), $relationship);
-        } elseif (Str::startsWith($method, 'has')) {
+            return $this->for($factory->state(($parameters[0] ?? [])), $relationship);
+        } else if (Str::startsWith($method, 'has')) {
             return $this->has(
                 $factory
-                    ->count(is_numeric($parameters[0] ?? null) ? $parameters[0] : 1)
-                    ->state((is_callable($parameters[0] ?? null) || is_array($parameters[0] ?? null)) ? $parameters[0] : ($parameters[1] ?? [])),
+                    ->count(is_numeric(($parameters[0] ?? null)) ? $parameters[0] : 1)
+                    ->state((is_callable(($parameters[0] ?? null)) || is_array(($parameters[0] ?? null))) ? $parameters[0] : ($parameters[1] ?? [])),
                 $relationship
             );
         }
