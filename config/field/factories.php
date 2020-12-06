@@ -45,9 +45,9 @@ return [
         'formater' => 'words',
     ],
     ManyToMany::class => [
-        'formater' => 'relation',
+        'formater' => 'randomRelation',
         'parameters' => [
-            'count' => 5,
+            'limit' => 2,
         ],
     ],
     ManyToOne::class => [
@@ -76,9 +76,6 @@ return [
         ],
     ],
     Reversed\HasOne::class => [
-        'formater' => 'relation',
-    ],
-    Reversed\HasManyMorph::class => [
         'formater' => 'relation',
     ],
     Text::class => [

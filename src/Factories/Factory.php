@@ -224,11 +224,13 @@ class Factory extends BaseFactory
                 $field = $this->getMeta()->getField($relationship)->getReversedField();
                 $value = $field instanceof ManyRelationField ? $model->newCollection([$model]) : $model;
 
-                $children = $has->state([
-                    $field->getName() => $value,
-                ])->create();
+                if ($has instanceof BaseFactory) {
+                    $has = $has->state([
+                        $field->getName() => $value,
+                    ])->create();
+                }
 
-                $model->setRelationValue($relationship, $children);
+                $model->setRelationValue($relationship, $has);
             });
         });
     }

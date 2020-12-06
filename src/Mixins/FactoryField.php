@@ -12,6 +12,7 @@ namespace Laramore\Mixins;
 
 use Faker\Generator as Faker;
 use Illuminate\Support\Str;
+use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Factories\Factory;
 
 
@@ -117,6 +118,20 @@ class FactoryField
                 }
 
                 return $factory;
+            }
+
+            if ($name === 'randomRelation') {
+                $builder = $this->getTargetModel()::query()->inRandomOrder();
+
+                foreach ($parameters as $method => $args) {
+                    $args = \is_array($args) ? $args : [$args];
+
+                    $builder = \call_user_func([$builder, $method], ...$args);
+                }
+
+                return $this instanceof ManyRelationField
+                    ? $builder->get()
+                    : $builder->first();
             }
 
             return app(Faker::class)->format(
