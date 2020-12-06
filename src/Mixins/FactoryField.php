@@ -15,10 +15,16 @@ use Illuminate\Support\Str;
 use Laramore\Factories\Factory;
 
 
-class FactoryField {
-    public function getFactoryConfig() 
+class FactoryField
+{
+    /**
+     * Return factory field config.
+     *
+     * @return array
+     */
+    public function getFactoryConfig()
     {
-        return function (string $path = '', $default = null) {
+        return function (string $path='', $default=null) {
             if (!config()->has('field.factories.'.static::class)) {
                 // This requires config only if no generate method are defined.
                 if (\method_exists($this, 'generate')) {
@@ -32,6 +38,11 @@ class FactoryField {
         };
     }
 
+    /**
+     * Return factory field formater.
+     *
+     * @return string|null
+     */
     public function getFactoryFormater()
     {
         return function () {
@@ -42,6 +53,11 @@ class FactoryField {
         };
     }
 
+    /**
+     * Return factory formater parameters.
+     *
+     * @return array
+     */
     public function getFactoryParameters()
     {
         return function () {
@@ -54,11 +70,11 @@ class FactoryField {
             }
 
             if ($name === 'randomFloat' && $this->hasProperty('totalDigits') && $this->hasProperty('decimalDigits')) {
-                $maxDigits = $this->totalDigits - $this->decimalDigits;
-                $max = pow(10, $maxDigits + 1) - 1;
+                $maxDigits = ($this->totalDigits - $this->decimalDigits);
+                $max = (pow(10, ($maxDigits + 1)) - 1);
 
                 if (\count($parameters) === 0) {
-                    $parameters[] = - $max;
+                    $parameters[] = (- $max);
                 }
 
                 if (\count($parameters) === 1) {
@@ -70,6 +86,11 @@ class FactoryField {
         };
     }
 
+    /**
+     * Generate a value with factory field.
+     *
+     * @return mixed
+     */
     public function generate()
     {
         return function () {
@@ -94,7 +115,7 @@ class FactoryField {
 
                     $factory = \call_user_func([$factory, $method], ...$args);
                 }
-                
+
                 return $factory;
             }
 

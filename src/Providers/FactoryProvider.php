@@ -51,7 +51,6 @@ class FactoryProvider extends ServiceProvider
         return [app()->databasePath('factories')];
     }
 
-
     /**
      * Mixin factory methods.
      *
@@ -59,8 +58,6 @@ class FactoryProvider extends ServiceProvider
      */
     public function bootingCallback()
     {
-        // Type::define('factory_name');
-        // Type::define('factory_parameters', []);
         BaseField::mixin(new FactoryField());
     }
 }
