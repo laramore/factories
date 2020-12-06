@@ -75,6 +75,12 @@ return [
             'count' => 5,
         ],
     ],
+    Reversed\HasOne::class => [
+        'formater' => 'relation',
+    ],
+    Reversed\HasManyMorph::class => [
+        'formater' => 'relation',
+    ],
     Text::class => [
         'formater' => 'text',
     ],
