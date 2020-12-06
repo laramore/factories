@@ -67,9 +67,12 @@ class Factory extends BaseFactory
         $with = new Collection($this->getMeta()->getFields());
 
         return $with->filter(function (Field $field) {
-            return ($field->getOwner() === $field->getMeta()
-                && !$field->hasOption(Option::nullable())
+            return (!$field->hasOption(Option::nullable())
                 && (!\is_null($field->getFactoryFormater()) || \method_exists($field, 'generate'))
+                && (!($field instanceof RelationField) || $field->hasOption(Option::required()))
+                && ($field->getOwner() === $field->getMeta()
+                    || (($field instanceof RelationField) && !$field->isRelationHeadOn())
+                )
             );
         });
     }
@@ -267,15 +270,11 @@ class Factory extends BaseFactory
     protected function generateMissingAttributes(array $definition)
     {
         foreach ($this->with as $name => $field) {
-            // Relations are handled by states. Moreover, they are auto generated
-            // if the relation field has the option required.
-            if (($field instanceof RelationField && !$field->hasOption(Option::required()))) {
-                continue;
-            }
-
             if (!Arr::exists($definition, $name)) {
                 if ($field instanceof ManyRelationField && !$this->has->has($name)) {
-                    $this->has($field->getOwner()->generateFieldValue($field), $name);
+                    $this->has = $this->has->merge([
+                        $name => $field->getOwner()->generateFieldValue($field),
+                    ]);
                 } else {
                     $definition[$name] = $field->getOwner()->generateFieldValue($field);
                 }
