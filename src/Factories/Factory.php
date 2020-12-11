@@ -67,7 +67,7 @@ class Factory extends BaseFactory
         $with = new Collection($this->getMeta()->getFields());
 
         return $with->filter(function (Field $field) {
-            return (!$field->hasOption(Option::nullable())
+            return (!$field->hasOption(Option::nullable() && !$field->hasDefault())
                 && (!\is_null($field->getFactoryFormater()) || \method_exists($field, 'generate'))
                 && (!($field instanceof RelationField) || $field->hasOption(Option::required()))
                 && ($field->getOwner() === $field->getMeta()
