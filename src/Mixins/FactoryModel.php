@@ -37,7 +37,7 @@ class FactoryModel
      *
      * @return mixed
      */
-    public static function make()
+    public static function generate()
     {
         return function (...$parameters)
         {
