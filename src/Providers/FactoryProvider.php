@@ -11,9 +11,12 @@
 namespace Laramore\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Laramore\Eloquent\BaseModel;
 use Laramore\Traits\Provider\MergesConfig;
 use Laramore\Fields\BaseField;
-use Laramore\Mixins\FactoryField;
+use Laramore\Mixins\{
+    FactoryField, FactoryModel
+};
 
 class FactoryProvider extends ServiceProvider
 {
@@ -28,14 +31,6 @@ class FactoryProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(
             __DIR__.'/../../config/field/factories.php', 'field.factories',
-        );
-
-        $this->mergeConfigFrom(
-            __DIR__.'/../../config/field/proxy.php', 'field.proxy',
-        );
-
-        $this->mergeConfigFrom(
-            __DIR__.'/../../config/proxy.php', 'proxy',
         );
 
         $this->app->booting([$this, 'bootingCallback']);
@@ -59,5 +54,6 @@ class FactoryProvider extends ServiceProvider
     public function bootingCallback()
     {
         BaseField::mixin(new FactoryField());
+        BaseModel::mixin(new FactoryModel());
     }
 }
