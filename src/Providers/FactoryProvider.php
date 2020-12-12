@@ -53,6 +53,8 @@ class FactoryProvider extends ServiceProvider
      */
     public function bootingCallback()
     {
+        BaseField::$configKeys[] = 'factories';
+        
         BaseField::mixin(new FactoryField());
         BaseModel::mixin(new FactoryModel());
     }

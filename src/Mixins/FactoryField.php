@@ -11,6 +11,7 @@
 namespace Laramore\Mixins;
 
 use Faker\Generator as Faker;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Factories\Factory;
@@ -25,17 +26,12 @@ class FactoryField
      */
     public function getFactoryConfig()
     {
-        return function (string $path='', $default=null) {
-            if (!config()->has('field.factories.'.static::class)) {
-                // This requires config only if no generate method are defined.
-                if (\method_exists($this, 'generate')) {
-                    return $default;
-                }
-
-                throw new \Exception('Missing factory configs for '.static::class);
+        return function (string $path=null, $default=null) {
+            if (\is_null($path)) {
+                return $this->config['factories'];
             }
 
-            return config('field.factories.'.static::class.($path ? '.'.$path : ''), $default);
+            return Arr::get($this->config['factories'], $path, $default);
         };
     }
 
