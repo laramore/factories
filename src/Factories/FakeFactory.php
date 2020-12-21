@@ -68,6 +68,7 @@ class FakeFactory extends Factory
             'states' => $this->states,
             'has' => $this->has,
             'for' => $this->for,
+            'with' => $this->with,
             'afterMaking' => $this->afterMaking,
             'afterCreating' => $this->afterCreating,
             'connection' => $this->connection,

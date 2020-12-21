@@ -22,7 +22,7 @@ class FactoryField
     /**
      * Return factory field config.
      *
-     * @return array
+     * @return mixed
      */
     public function getFactoryConfig()
     {

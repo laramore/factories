@@ -153,11 +153,11 @@ class Factory extends BaseFactory
     /**
      * Define a parent relationship for the model.
      *
-     * @param  BaseFactory $factory
+     * @param  BaseFactory|mixed $factory
      * @param  string|null $relationship
      * @return static
      */
-    public function for(BaseFactory $factory, $relationship=null)
+    public function for($factory, $relationship=null)
     {
         $relationship = Str::snake($relationship ?: Str::camel(class_basename($factory->modelName())));
 
