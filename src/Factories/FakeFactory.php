@@ -44,17 +44,6 @@ class FakeFactory extends Factory
     }
 
     /**
-     * Get a new factory instance for the given attributes.
-     *
-     * @param  callable|array $attributes
-     * @return static
-     */
-    public static function new($attributes=[])
-    {
-        return (new static($this->model))->state($attributes)->configure();
-    }
-
-    /**
      * Create a new instance of the factory builder with the given mutated properties.
      *
      * @param  array $arguments

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\{
     Str, Arr, Collection
 };
+use Laramore\Contracts\Field\ComposedField;
 use Laramore\Contracts\Field\Field;
 use Laramore\Contracts\Field\ManyRelationField;
 use Laramore\Contracts\Field\RelationField;
@@ -251,6 +252,7 @@ class Factory extends BaseFactory
                 && !is_string($attribute)
                 && !is_array($attribute)
                 && !($attribute instanceof Element)) {
+
                 $attribute = $attribute($definition);
             }
 
@@ -272,13 +274,29 @@ class Factory extends BaseFactory
      */
     protected function generateMissingAttributes(array $definition)
     {
-        foreach ($this->with as $name => $field) {
-            if (!Arr::exists($definition, $name)) {
+        $fields = $this->with->toArray();
+        $names = array_keys($fields);
+
+        while ($name = array_shift($names)) {
+            $field = $fields[$name];
+
+            if (! Arr::exists($definition, $name) && ! ($field instanceof \Laramore\Contracts\Field\LinkField)) {
                 if ($field instanceof ManyRelationField && !$this->has->has($name)) {
                     $this->has = $this->has->merge([
                         $name => $field->getOwner()->generateFieldValue($field),
                     ]);
-                } else {
+                } else if (! $field->hasOption(Option::useCurrent())) {
+                    if ($field instanceof ComposedField) {
+                        $decomposed = $field->decompose()[$this->getModelClass()] ?? [];
+
+                        if (! Arr::hasAny($definition, $decomposed)) {
+                            $fields = array_merge($fields, $decomposed);
+                            $names = array_merge($names, array_keys($decomposed));
+
+                            continue;
+                        }
+                    }
+
                     $definition[$name] = $field->getOwner()->generateFieldValue($field);
                 }
             }
