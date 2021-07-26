@@ -44,6 +44,12 @@ return [
     Json::class => [
         'formater' => 'words',
     ],
+    JsonList::class => [
+        'formater' => 'words',
+    ],
+    JsonObject::class => [
+        'formater' => 'words_object',
+    ],
     ManyToMany::class => [
         'formater' => 'randomRelation',
         'parameters' => [
@@ -90,5 +96,5 @@ return [
     Uri::class => [
         'formater' => 'url',
     ],
-    
+
 ];

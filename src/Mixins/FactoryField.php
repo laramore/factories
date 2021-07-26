@@ -102,6 +102,13 @@ class FactoryField
                 return $this->getFactoryConfig('password');
             }
 
+            if ($name === 'wordsObject') {
+                $keys = app(Faker::class)->format('words');
+                $values = app(Faker::class)->format('words');
+
+                return array_combine($keys, $values);
+            }
+
             $parameters = $this->getFactoryParameters();
 
             if ($name === 'relation') {
