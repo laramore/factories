@@ -285,20 +285,22 @@ class Factory extends BaseFactory
                     $this->has = $this->has->merge([
                         $name => $field->getOwner()->generateFieldValue($field),
                     ]);
-                } else if (! $field->hasOption(Option::useCurrent())) {
-                    if ($field instanceof ComposedField) {
-                        $decomposed = $field->decompose()[$this->getModelClass()] ?? [];
-
-                        if (! Arr::hasAny($definition, $decomposed)) {
-                            $fields = array_merge($fields, $decomposed);
-                            $names = array_merge($names, array_keys($decomposed));
-
-                            continue;
-                        }
-                    }
-
-                    $definition[$name] = $field->getOwner()->generateFieldValue($field);
+                } else if ($field->hasOption(Option::useCurrent())) {
+                    continue;
                 }
+
+                if ($field instanceof ComposedField) {
+                    $decomposed = $field->decompose()[$this->getModelClass()] ?? [];
+
+                    if (Arr::hasAny($definition, $decomposed)) {
+                        $fields = array_merge($fields, $decomposed);
+                        $names = array_merge($names, array_keys($decomposed));
+
+                        continue;
+                    }
+                }
+
+                $definition[$name] = $field->getOwner()->generateFieldValue($field);
             }
         }
 
