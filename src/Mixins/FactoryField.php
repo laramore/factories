@@ -10,6 +10,7 @@
 
 namespace Laramore\Mixins;
 
+use Exception;
 use Faker\Generator as Faker;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -156,9 +157,13 @@ class FactoryField
                 return $this->getFactory()->format('randomNumber', $parameters) / pow(10, $this->decimalDigits);
             }
 
-            return $this->getFactory()->format(
-                $name, $parameters
-            );
+            try {
+                return $this->getFactory()->format(
+                    $name, $parameters
+                );
+            } catch (Exception $e) {
+                throw new Exception("Error during creating factory for `{$this->getQualifiedName()}` with generator `{$name}`.");
+            }
         };
     }
 }
