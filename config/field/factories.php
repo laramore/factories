@@ -35,6 +35,9 @@ return [
     Enum::class => [
         'formater' => 'randomElement',
     ],
+    Hashed::class => [
+        'formater' => 'text',
+    ],
     Increment::class => [
         'formater' => 'randomNumber',
     ],
