@@ -69,7 +69,7 @@ return [
         'formater' => 'password',
         'password' => 'password', // Password used by factory.
     ],
-    PrimaryId::class => [
+    PrimaryIncrement::class => [
         'formater' => null,
     ],
     Reversed\BelongsToMany::class => [
